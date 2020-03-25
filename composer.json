@@ -6,6 +6,7 @@
         "ext-ctype": "*",
         "ext-iconv": "*",
         "ext-json": "*",
+        "ext-pcntl": "*",
         "react/http": "^0.8.6",
         "symfony/console": "5.0.*",
         "symfony/dotenv": "5.0.*",

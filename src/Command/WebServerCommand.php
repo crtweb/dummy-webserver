@@ -5,6 +5,7 @@ namespace App\Command;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Log\LoggerInterface;
 use React\EventLoop\Factory;
+use React\EventLoop\LoopInterface;
 use React\Http\{Response, Server};
 use React\Socket\Server as SocketServer;
 use Symfony\Component\Console\{
@@ -57,6 +58,7 @@ class WebServerCommand extends Command
             ->setDescription('Simple web-server')
             ->addArgument('data-dir', InputArgument::OPTIONAL, 'Directory with files for responses', 'var')
             ->addOption('port', 'p', InputOption::VALUE_OPTIONAL, 'Port for listening', 8080)
+            ->addOption('host', null, InputOption::VALUE_OPTIONAL, 'Interface for listening', '0.0.0.0')
         ;
     }
 
@@ -77,13 +79,27 @@ class WebServerCommand extends Command
         });
 
         $loop = Factory::create();
-        $socket = new SocketServer((int) $input->getOption('port'), $loop);
+        $socket = new SocketServer(sprintf('%s:%d', (string) $input->getOption('host'), (int) $input->getOption('port')), $loop);
         $server->listen($socket);
+        $this->registerSignals($loop);
 
         $loop->run();
         $this->logger->info(\sprintf('Server stopped at %s', \date_create()->format(\DateTime::ATOM)));
 
         return 0;
+    }
+
+    /**
+     * @param LoopInterface $loop
+     */
+    private function registerSignals(LoopInterface $loop): void
+    {
+        \pcntl_signal(SIGTERM, static function () use ($loop) {
+            $loop->stop();
+        });
+        \pcntl_signal(SIGINT, static function () use ($loop) {
+            $loop->stop();
+        });
     }
 
     /**
