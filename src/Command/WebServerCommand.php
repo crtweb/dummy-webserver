@@ -56,7 +56,7 @@ class WebServerCommand extends Command
     {
         $this
             ->setDescription('Simple web-server')
-            ->addArgument('data-dir', InputArgument::OPTIONAL, 'Directory with files for responses', 'var')
+            ->addArgument('data-dir', InputArgument::OPTIONAL, 'Directory with files for responses', 'responses')
             ->addOption('port', 'p', InputOption::VALUE_OPTIONAL, 'Port for listening', 8080)
             ->addOption('host', null, InputOption::VALUE_OPTIONAL, 'Interface for listening', '0.0.0.0')
         ;
