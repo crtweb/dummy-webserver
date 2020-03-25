@@ -21,6 +21,8 @@ RUN curl -sS https://getcomposer.org/installer | php -- \
     --install-dir=/usr/local/bin \
     --filename=composer
 
+RUN apk del --no-network .build-deps
+
 COPY . /var/www/app
 RUN composer install --no-dev --no-ansi --no-interaction --prefer-dist
 
