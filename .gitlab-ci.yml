@@ -1,0 +1,31 @@
+stages:
+  - build_image
+  - test
+
+cache:
+  paths:
+    - vendor
+
+build:
+  stage: build_image
+  image: docker:dind
+  only:
+    refs:
+      - master
+  before_script:
+    - echo "192.168.88.240  git.crtweb.ru" >> /etc/hosts
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" $CI_REGISTRY --password-stdin
+  script:
+    - docker build -t $CI_REGISTRY_IMAGE/server:latest -f docker/Dockerfile
+    - docker push $CI_REGISTRY_IMAGE/server:latest
+
+tests:
+  stage: test
+  image: $CI_REGISTRY_IMAGE/server:latest
+  only:
+    refs:
+      - master
+  before_script:
+    - composer install --prefer-dist --no-suggest --no-ansi --no-interaction --classmap-authoritative
+  script:
+    - bin/phpunit --coverage-text --colors=never
