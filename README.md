@@ -41,6 +41,11 @@ Options:
   -v|vv|vvv, --verbose  Increase the verbosity of messages: 1 for normal output, 2 for more verbose output and 3 for debug
 ```
 
+## Default properties
+
+- All responses will contains `Content-type: application/json` header, if you are not provide the `Accept` header with another type. If you are, response header `Content-type` will be the same as request header `Accept`.
+- If request path not have a extension (`path/to/something`, not `path/to/something.json`) the server will search file with `.json` extension.
+
 ## For example
 
 Remote API have to respond with JSON like

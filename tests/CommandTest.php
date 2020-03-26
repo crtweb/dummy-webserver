@@ -3,10 +3,11 @@
 namespace App\Tests;
 
 use App\Command\WebServerCommand;
-use React\Http\Response;
+use React\EventLoop\LoopInterface;
+use React\Http\{Response, Server};
 use RingCentral\Psr7\ServerRequest;
-use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
-use Symfony\Component\Console\Exception\RuntimeException;
+use Symfony\Bundle\FrameworkBundle\{Test\KernelTestCase, Console\Application};
+use Symfony\Component\Console\{Exception\RuntimeException, Tester\CommandTester};
 
 class CommandTest extends KernelTestCase
 {
@@ -110,5 +111,45 @@ class CommandTest extends KernelTestCase
 
         $this->assertInstanceOf(Response::class, $response);
         $this->assertEquals(404, $response->getStatusCode());
+    }
+
+    public function testMakeSocketMethod(): void
+    {
+        $service = self::$container->get(WebServerCommand::class);
+        $makeSocket = $this->getMethod($service, 'makeSocket');
+        $this->assertInstanceOf(\React\Socket\Server::class, $makeSocket->invokeArgs($service, ['0.0.0.0', 8888]));
+    }
+
+    public function testMakeServerMethod(): void
+    {
+        $service = self::$container->get(WebServerCommand::class);
+        $makeServer = $this->getMethod($service, 'makeServer');
+        $this->assertInstanceOf(Server::class, $makeServer->invoke($service));
+    }
+
+    public function testGetLoopInstance(): void
+    {
+        $loop = self::$container->get(LoopInterface::class);
+        $this->assertInstanceOf(LoopInterface::class, $loop);
+    }
+
+    public function testCommandExecuteMethod(): void
+    {
+        $service = self::$container->get(WebServerCommand::class);
+        try {
+            $reflectionLoop = (new \ReflectionObject($service))->getProperty('loop');
+        } catch (\ReflectionException $e) {
+            throw new \RuntimeException($e->getMessage());
+        }
+        $reflectionLoop->setAccessible(true);
+        /** @var LoopInterface $loop */
+        $loop = $reflectionLoop->getValue($service);
+        $loop->addTimer(.1, static function () use ($loop) { $loop->stop(); });
+
+        $app = new Application(self::$kernel);
+        $command = $app->find('app:web-server');
+        $tester = new CommandTester($command);
+        $tester->execute([], ['verbosity' => 256]);
+        $this->assertSame(0, $tester->getStatusCode());
     }
 }

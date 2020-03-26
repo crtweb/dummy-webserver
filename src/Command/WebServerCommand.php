@@ -4,7 +4,6 @@ namespace App\Command;
 
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Log\LoggerInterface;
-use React\EventLoop\Factory;
 use React\EventLoop\LoopInterface;
 use React\Http\{Response, Server};
 use React\Socket\Server as SocketServer;
@@ -32,21 +31,24 @@ class WebServerCommand extends Command
     private SluggerInterface $slugger;
     private ?string $dataDir = null;
     private LoggerInterface $logger;
+    private LoopInterface $loop;
 
     /**
      * WebServerCommand constructor.
      *
+     * @param LoopInterface      $loop
      * @param ContainerInterface $container
      * @param SluggerInterface   $slugger
      * @param LoggerInterface    $logger
      * @param string|null        $name
      */
-    public function __construct(ContainerInterface $container, SluggerInterface $slugger, LoggerInterface $logger, string $name = null)
+    public function __construct(LoopInterface $loop, ContainerInterface $container, SluggerInterface $slugger, LoggerInterface $logger, string $name = null)
     {
         parent::__construct($name);
         $this->container = $container;
         $this->slugger = $slugger;
         $this->logger = $logger;
+        $this->loop = $loop;
     }
 
     /**
@@ -70,36 +72,52 @@ class WebServerCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $this->logger->info(\sprintf('Server started at %s', \date_create()->format(\DateTime::ATOM)));
+        $host = (string) $input->getOption('host');
+        $port = (int) $input->getOption('port');
+
+        $this->logger->info(\sprintf('Server %s:%d started at %s', $host, $port, self::t()));
         $this->io = new SymfonyStyle($input, $output);
         $this->checkDir((string) $input->getArgument('data-dir'));
 
-        $server = new Server(function (ServerRequestInterface $request) {
-            return $this->processRequest($request);
-        });
-
-        $loop = Factory::create();
-        $socket = new SocketServer(sprintf('%s:%d', (string) $input->getOption('host'), (int) $input->getOption('port')), $loop);
+        $server = $this->makeServer();
+        $socket = $this->makeSocket($host, $port);
         $server->listen($socket);
-        $this->registerSignals($loop);
+        $this->registerSignals();
 
-        $loop->run();
-        $this->logger->info(\sprintf('Server stopped at %s', \date_create()->format(\DateTime::ATOM)));
+        $this->loop->run();
+        $this->logger->info(\sprintf('Server stopped at %s', self::t()));
 
         return 0;
     }
 
     /**
-     * @param LoopInterface $loop
+     * @param string $host
+     * @param int    $port
+     *
+     * @return SocketServer
      */
-    private function registerSignals(LoopInterface $loop): void
+    private function makeSocket(string $host, int $port): SocketServer
     {
-        \pcntl_signal(SIGTERM, static function () use ($loop) {
-            $loop->stop();
+        return new SocketServer(\sprintf('%s:%d', $host, $port), $this->loop);
+    }
+
+    /**
+     * @return Server
+     */
+    private function makeServer(): Server
+    {
+        return new Server(function (ServerRequestInterface $request) {
+            return $this->processRequest($request);
         });
-        \pcntl_signal(SIGINT, static function () use ($loop) {
-            $loop->stop();
-        });
+    }
+
+    /**
+     * Register signals for a loop
+     */
+    private function registerSignals(): void
+    {
+        $this->loop->addSignal(SIGTERM, function () { $this->loop->stop(); });
+        $this->loop->addSignal(SIGINT, function () { $this->loop->stop(); });
     }
 
     /**
@@ -204,5 +222,13 @@ class WebServerCommand extends Command
         });
 
         return $default;
+    }
+
+    /**
+     * @return string Current date and time
+     */
+    protected static function t(): string
+    {
+        return \date_create()->format(\DateTime::ATOM);
     }
 }
