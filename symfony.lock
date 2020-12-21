@@ -126,6 +126,9 @@
     "symfony/dependency-injection": {
         "version": "v5.0.5"
     },
+    "symfony/deprecation-contracts": {
+        "version": "v2.2.0"
+    },
     "symfony/dom-crawler": {
         "version": "v5.0.5"
     },
@@ -178,6 +181,9 @@
             "src/Controller/.gitignore",
             "src/Kernel.php"
         ]
+    },
+    "symfony/http-client-contracts": {
+        "version": "v2.3.1"
     },
     "symfony/http-foundation": {
         "version": "v5.0.5"
@@ -246,6 +252,9 @@
     },
     "symfony/polyfill-php73": {
         "version": "v1.14.0"
+    },
+    "symfony/polyfill-php80": {
+        "version": "v1.20.0"
     },
     "symfony/polyfill-uuid": {
         "version": "v1.14.0"

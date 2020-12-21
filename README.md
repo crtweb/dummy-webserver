@@ -77,4 +77,5 @@ If file with target name not will be found, you will receive the 404-response.
 ## Future plans
 
 - [ ] Add possibility to throw exceptions from responses;
+- [ ] Add possibility to receive special response headers;
 - [ ] Add possibility to get streamed responses;
